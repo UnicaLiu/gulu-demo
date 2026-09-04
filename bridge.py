@@ -10,17 +10,53 @@ API:
   POST /api/chat  {bot, message}     -> 发给指定 bot，SSE 流式返回该 bot 的回复
 """
 import json
+import os
 import shlex
 import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-# bot 名 -> (profile, 中文名, 部门, 角色描述)
-BOTS = {
-    "agri-xiaoshou": {"name": "农业销售部", "dept": "销售部", "role": "市场开拓 · 客户跟进 · 订单转化"},
-    "agri-shengchan": {"name": "农业生产部", "dept": "生产部", "role": "种植排产 · 农事执行 · 产量跟踪"},
-}
+_BASE = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(_BASE, "bots.json")
+
+
+def load_config():
+    """从 bots.json 读取公司抬头与 bot 列表；文件缺失时用内置兜底。"""
+    default = {
+        "company": "沽渌农业自动化管理总控台",
+        "company_en": "GULU AGRI · AUTOMATION COMMAND",
+        "hero_title": "让每一寸农田，被看见、被理解、被调度。",
+        "bots": [
+            {"id": "agri-xiaoshou", "name": "农业销售部", "dept": "农业销售部",
+             "role": "市场开拓 · 客户跟进 · 订单转化", "state": "在线",
+             "task": "梳理本周高意向客户，生成首轮回访建议", "progress": 72,
+             "kpi1": "今日跟进客户", "value1": "12 位", "kpi2": "订单转化", "value2": "3 单",
+             "image": "assets/agri-sales-bot.png",
+             "welcome": "您好，我是农业销售部智能助手。我可以协助市场开拓、客户跟进与订单转化。"},
+            {"id": "agri-shengchan", "name": "农业生产部", "dept": "农业生产部",
+             "role": "种植排产 · 农事执行 · 产量跟踪", "state": "工作中",
+             "task": "监测秋季叶菜批次长势，更新明日农事排产", "progress": 58,
+             "kpi1": "今日排产", "value1": "8 亩", "kpi2": "农事执行", "value2": "6 项",
+             "image": "assets/agri-production-bot.png",
+             "welcome": "您好，我是农业生产部智能助手。我可以协助种植排产、农事执行和产量跟踪。"},
+        ],
+    }
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)
+        for key in default:
+            cfg.setdefault(key, default[key])
+        return cfg
+    except Exception:
+        return default
+
+
+def bot_index():
+    cfg = load_config()
+    return {b["id"]: b for b in cfg.get("bots", [])}
+
+
 LOCK = threading.Lock()
 
 
@@ -85,7 +121,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/bots":
-            self._json(200, {"bots": BOTS})
+            cfg = load_config()
+            self._json(200, cfg)
         elif path.startswith("/assets/"):
             # 静态资源（Codex 生成的图片）
             import os
@@ -128,7 +165,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             bot = payload.get("bot", "")
             msg = (payload.get("message") or "").strip()
-            if bot not in BOTS:
+            bots = bot_index()
+            if bot not in bots:
                 self._json(404, {"error": "unknown bot: " + bot})
                 return
             if not msg:
@@ -147,8 +185,11 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     args = ap.parse_args()
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"农业总控看板后端已启动: http://{args.host}:{args.port}")
-    print("Bots:", ", ".join(f"{v['name']}({k})" for k, v in BOTS.items()))
+    cfg = load_config()
+    bots = cfg.get("bots", [])
+    print(f"{cfg.get('company','农业总控看板')} 后端已启动: http://{args.host}:{args.port}")
+    print("Bots:", ", ".join(f"{b.get('name')}({b.get('id')})" for b in bots))
+    print("编辑同目录 bots.json 可增删/改名要连接的 bot；改后重启本服务即可。")
     srv.serve_forever()
 
 

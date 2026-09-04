@@ -1,0 +1,35 @@
+{
+  "company": "沽渌农业自动化管理总控台",
+  "company_en": "GULU AGRI · AUTOMATION COMMAND",
+  "hero_title": "让每一寸农田，被看见、被理解、被调度。",
+  "bots": [
+    {
+      "id": "agri-xiaoshou",
+      "name": "农业销售部",
+      "dept": "农业销售部",
+      "state": "在线",
+      "task": "梳理本周高意向客户，生成首轮回访建议",
+      "progress": 72,
+      "kpi1": "今日跟进客户",
+      "value1": "12 位",
+      "kpi2": "订单转化",
+      "value2": "3 单",
+      "image": "assets/agri-sales-bot.png",
+      "welcome": "您好，我是农业销售部智能助手。我可以协助市场开拓、客户跟进与订单转化。"
+    },
+    {
+      "id": "agri-shengchan",
+      "name": "农业生产部",
+      "dept": "农业生产部",
+      "state": "工作中",
+      "task": "监测秋季叶菜批次长势，更新明日农事排产",
+      "progress": 58,
+      "kpi1": "今日排产",
+      "value1": "8 亩",
+      "kpi2": "农事执行",
+      "value2": "6 项",
+      "image": "assets/agri-production-bot.png",
+      "welcome": "您好，我是农业生产部智能助手。我可以协助种植排产、农事执行和产量跟踪。"
+    }
+  ]
+}

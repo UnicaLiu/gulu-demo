@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#071916" />
-  <title>农业智能总控台｜广西光合智慧信息科技有限公司</title>
+  <title>沽渌农业自动化管理总控台</title>
   <style>
     :root { --ink:#eaf8f2; --muted:#9cb6ad; --line:rgba(173,241,211,.15); --panel:rgba(6,27,26,.68); --accent:#54f0b2; --blue:#5bcdf8; --orange:#ffbe72; }
     * { box-sizing:border-box; }
     html { background:#061411; }
     body { margin:0; min-width:320px; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; background:#061411; overflow-x:hidden; }
-    body::before { content:""; position:fixed; z-index:-3; inset:0; background:linear-gradient(90deg,rgba(3,15,18,.94),rgba(3,15,17,.68) 52%,rgba(3,14,14,.83)),url("assets/smart-farm-command-bg.png") center/cover no-repeat; }
+    body::before { content:""; position:fixed; z-index:-3; inset:0; background:linear-gradient(90deg,rgba(3,15,18,.82),rgba(3,15,17,.46) 52%,rgba(3,14,14,.66)),url("assets/smart-farm-bg-v2.jpg") center/cover no-repeat; }
     body::after { content:""; position:fixed; z-index:-2; inset:0; opacity:.62; background-image:linear-gradient(rgba(117,255,201,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(117,255,201,.04) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(to bottom,black,transparent 86%); }
     .shell { min-height:100vh; max-width:1540px; margin:auto; padding:28px 42px 42px; position:relative; }
     .shell::before { content:""; position:absolute; inset:0 0 auto; height:2px; background:linear-gradient(90deg,transparent 3%,var(--accent) 22%,rgba(91,205,248,.12) 52%,transparent 92%); box-shadow:0 0 22px rgba(84,240,178,.9); }
@@ -67,7 +67,7 @@
 <body>
   <div class="shell">
     <header class="topbar">
-      <div class="brand"><div class="brand-mark">⌁</div><div><p class="eyebrow">GUANGXI PHOTOSYNTHESIS · SMART AGRI</p><h1>广西光合智慧信息科技有限公司</h1></div></div>
+      <div class="brand"><div class="brand-mark">⌁</div><div><p class="eyebrow" id="eyebrowText">GULU AGRI · AUTOMATION COMMAND</p><h1 id="companyTitle">沽渌农业自动化管理总控台</h1></div></div>
       <div class="clock"><strong id="clock">--:--:--</strong><span id="date">正在同步本地时间</span></div>
     </header>
     <main>
@@ -85,19 +85,26 @@
   </aside>
   <script>
     (() => {
-      const bots = [
+      const FALLBACK_BOTS = [
         { id:'agri-xiaoshou', dept:'农业销售部', state:'在线', task:'梳理本周高意向客户，生成首轮回访建议', progress:72, kpi1:'今日跟进客户', value1:'12 位', kpi2:'订单转化', value2:'3 单', image:'assets/agri-sales-bot.png', welcome:'您好，我是农业销售部智能助手。我可以协助市场开拓、客户跟进与订单转化。' },
         { id:'agri-shengchan', dept:'农业生产部', state:'工作中', task:'监测秋季叶菜批次长势，更新明日农事排产', progress:58, kpi1:'今日排产', value1:'8 亩', kpi2:'农事执行', value2:'6 项', image:'assets/agri-production-bot.png', welcome:'您好，我是农业生产部智能助手。我可以协助种植排产、农事执行和产量跟踪。' }
       ];
+      const FALLBACK_COMPANY = { company:'沽渌农业自动化管理总控台', company_en:'GULU AGRI · AUTOMATION COMMAND' };
+      let bots = FALLBACK_BOTS;
       const $ = id => document.getElementById(id);
       const cards = $('botCards'), drawer = $('drawer'), backdrop = $('backdrop'), messages = $('messages'), input = $('messageInput'), sendBtn = $('sendBtn');
       let activeBot = null, pending = false;
-      const history = Object.fromEntries(bots.map(bot => [bot.id, [{role:'bot', text:bot.welcome}]]));
-      function escapeHTML(value) { const node = document.createElement('div'); node.textContent = value; return node.innerHTML; }
-      function renderCards() { cards.innerHTML = bots.map(bot => `<article class="bot-card" tabindex="0" data-bot="${bot.id}" role="button" aria-label="与${bot.dept}对话"><div class="card-top"><img class="avatar" src="${bot.image}" alt="${bot.dept} Bot 形象"/><div class="name"><h3>${bot.dept}</h3><p>${bot.id}</p></div><div class="status"><i class="lamp"></i>${bot.state}</div></div><div class="task"><label>CURRENT OPERATION / 当前任务</label><h4>${bot.task}</h4><div class="progress-row"><span>任务进度</span><span>${bot.progress}%</span></div><div class="bar"><i style="width:${bot.progress}%"></i></div></div><div class="kpis"><div class="kpi"><span>${bot.kpi1}</span><strong>${bot.value1}</strong></div><div class="kpi"><span>${bot.kpi2}</span><strong>${bot.value2}</strong></div></div><div class="dialog-cta"><span>开始对话，获取实时协作支持</span><b>→</b></div></article>`).join(''); }
+      let history = {};
+      function escapeHTML(value) { const node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
+      function avatarFor(bot) {
+        if (bot.image) return `<img class="avatar" src="${bot.image}" alt="${bot.dept} Bot 形象"/>`;
+        const ch = (bot.dept || bot.id || 'B').trim().charAt(0);
+        return `<div class="avatar" style="display:grid;place-items:center;font-size:26px;font-weight:700;color:#06221a;background:linear-gradient(135deg,#54f0b2,#5bcdf8)">${escapeHTML(ch)}</div>`;
+      }
+      function renderCards() { cards.innerHTML = bots.map(bot => `<article class="bot-card" tabindex="0" data-bot="${bot.id}" role="button" aria-label="与${bot.dept}对话"><div class="card-top">${avatarFor(bot)}<div class="name"><h3>${escapeHTML(bot.dept)}</h3><p>${escapeHTML(bot.id)}</p></div><div class="status"><i class="lamp"></i>${escapeHTML(bot.state)}</div></div><div class="task"><label>CURRENT OPERATION / 当前任务</label><h4>${escapeHTML(bot.task)}</h4><div class="progress-row"><span>任务进度</span><span>${bot.progress}%</span></div><div class="bar"><i style="width:${bot.progress}%"></i></div></div><div class="kpis"><div class="kpi"><span>${escapeHTML(bot.kpi1)}</span><strong>${escapeHTML(bot.value1)}</strong></div><div class="kpi"><span>${escapeHTML(bot.kpi2)}</span><strong>${escapeHTML(bot.value2)}</strong></div></div><div class="dialog-cta"><span>开始对话，获取实时协作支持</span><b>→</b></div></article>`).join(''); }
       function addBubble(role, text, className='') { const el = document.createElement('div'); el.className = `message ${role} ${className}`; el.innerHTML = escapeHTML(text); messages.appendChild(el); messages.scrollTop = messages.scrollHeight; return el; }
       function renderHistory() { messages.innerHTML=''; (history[activeBot.id] || []).forEach(item => addBubble(item.role, item.text)); }
-      function openBot(id) { activeBot = bots.find(bot => bot.id === id); if (!activeBot) return; $('drawerAvatar').src = activeBot.image; $('drawerAvatar').alt = activeBot.dept; $('drawerName').textContent = activeBot.dept + ' · 智能协作 Bot'; $('drawerId').textContent = activeBot.id + ' / ' + activeBot.state; $('chatMeta').textContent = 'HERMES BOT · ' + activeBot.state + ' · 同步对话通道'; renderHistory(); drawer.classList.add('open'); backdrop.classList.add('show'); drawer.setAttribute('aria-hidden','false'); setTimeout(() => input.focus(), 180); }
+      function openBot(id) { activeBot = bots.find(bot => bot.id === id); if (!activeBot) return; $('drawerAvatar').src = activeBot.image || ''; $('drawerAvatar').style.display = activeBot.image ? '' : 'none'; if (!activeBot.image) { const ch=(activeBot.dept||'B').charAt(0); if(!document.getElementById('drawerAvatarFallback')){const d=document.createElement('div');d.id='drawerAvatarFallback';d.className='avatar';d.style.cssText='display:grid;place-items:center;font-size:24px;font-weight:700;color:#06221a;background:linear-gradient(135deg,#54f0b2,#5bcdf8)';$('drawerAvatar').parentElement.insertBefore(d,$('drawerAvatar').nextSibling);} document.getElementById('drawerAvatarFallback').textContent=ch; } else { const fb=document.getElementById('drawerAvatarFallback'); if(fb) fb.remove(); } $('drawerAvatar').alt = activeBot.dept; $('drawerName').textContent = activeBot.dept + ' · 智能协作 Bot'; $('drawerId').textContent = activeBot.id + ' / ' + activeBot.state; $('chatMeta').textContent = 'HERMES BOT · ' + activeBot.state + ' · 同步对话通道'; renderHistory(); drawer.classList.add('open'); backdrop.classList.add('show'); drawer.setAttribute('aria-hidden','false'); setTimeout(() => input.focus(), 180); }
       function closeBot() { drawer.classList.remove('open'); backdrop.classList.remove('show'); drawer.setAttribute('aria-hidden','true'); }
       function setPending(value) { pending=value; sendBtn.disabled=value; input.disabled=value; }
       async function submitMessage(event) { event.preventDefault(); const text = input.value.trim(); if (!text || !activeBot || pending) return; input.value=''; history[activeBot.id].push({role:'user',text}); addBubble('user',text); setPending(true); const thinking = document.createElement('div'); thinking.className='thinking'; thinking.innerHTML='正在思考 <span class="dots"><i></i><i></i><i></i></span>'; messages.appendChild(thinking); messages.scrollTop=messages.scrollHeight;
@@ -105,8 +112,33 @@
         try { const response = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bot:activeBot.id,message:text}),signal:controller.signal}); if(!response.ok) throw new Error(`服务返回 ${response.status}`); const data=await response.json(); if(typeof data.reply !== 'string') throw new Error('响应中未包含 reply'); history[activeBot.id].push({role:'bot',text:data.reply}); thinking.remove(); addBubble('bot',data.reply); } catch(error) { thinking.remove(); const message = error.name === 'AbortError' ? '请求等待超过 60 秒，暂未收到回复。请确认本机 Bot 服务状态后重试。' : `暂时无法连接本机 Bot：${error.message}`; history[activeBot.id].push({role:'bot',text:message}); addBubble('bot',message); } finally { clearTimeout(timeout); clearTimeout(slowTimer); setPending(false); input.focus(); }
       }
       function updateClock() { const now=new Date(); $('clock').textContent=now.toLocaleTimeString('zh-CN',{hour12:false}); $('date').textContent=now.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'short'}); }
-      async function checkBots() { try { const response=await fetch('/api/bots'); if(!response.ok) return; const data=await response.json(); const list=Array.isArray(data)?data:(Array.isArray(data.bots)?data.bots:[]); const count=list.filter(item=>item && (item.id==='agri-xiaoshou'||item.id==='agri-shengchan')).length; if(count) $('networkStatus').innerHTML=String(count).padStart(2,'0')+'<span>在线</span>'; } catch (_) { /* 静态演示状态保留，聊天仍可直接请求 */ } }
-      renderCards(); updateClock(); setInterval(updateClock,1000); checkBots();
+      async function checkBots() { try { const response=await fetch('/api/bots'); if(!response.ok) return; const data=await response.json(); const list=Array.isArray(data)?data:(Array.isArray(data.bots)?data.bots:[]); $('networkStatus').innerHTML=String(list.length).padStart(2,'0')+'<span>在线</span>'; } catch (_) { /* 静态演示状态保留，聊天仍可直接请求 */ } }
+      async function init() {
+        try {
+          const response = await fetch('/api/bots');
+          if (response.ok) {
+            const data = await response.json();
+            const company = (data && data.company) || FALLBACK_COMPANY.company;
+            const companyEn = (data && data.company_en) || FALLBACK_COMPANY.company_en;
+            document.title = company;
+            const ct = $('companyTitle'); if (ct) ct.textContent = company;
+            const eb = $('eyebrowText'); if (eb) eb.textContent = companyEn;
+            const heroH = data && data.hero_title;
+            const h2 = document.querySelector('.hero h2'); if (h2 && heroH) h2.textContent = String(heroH);
+            const arr = (data && Array.isArray(data.bots)) ? data.bots : FALLBACK_BOTS;
+            if (arr && arr.length) {
+              bots = arr.map(b => Object.assign({}, b));
+              history = Object.fromEntries(bots.map(bot => [bot.id, [{role:'bot', text: bot.welcome || ''}]]));
+              renderCards();
+              return;
+            }
+          }
+        } catch (_) { /* fallthrough */ }
+        bots = FALLBACK_BOTS;
+        history = Object.fromEntries(bots.map(bot => [bot.id, [{role:'bot', text: bot.welcome || ''}]]));
+        renderCards();
+      }
+      updateClock(); setInterval(updateClock,1000); checkBots(); init();
       cards.addEventListener('click',event => { const card=event.target.closest('.bot-card'); if(card) openBot(card.dataset.bot); }); cards.addEventListener('keydown',event => { if((event.key==='Enter'||event.key===' ') && event.target.classList.contains('bot-card')) { event.preventDefault(); openBot(event.target.dataset.bot); } }); $('closeDrawer').addEventListener('click',closeBot); backdrop.addEventListener('click',closeBot); document.addEventListener('keydown',event=>{if(event.key==='Escape') closeBot();}); $('chatForm').addEventListener('submit',submitMessage); input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();$('chatForm').requestSubmit();}});
     })();
   </script>
