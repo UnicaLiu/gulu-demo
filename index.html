@@ -9,10 +9,10 @@
     :root { --ink:#eaf8f2; --muted:#9cb6ad; --line:rgba(173,241,211,.15); --panel:rgba(6,27,26,.68); --accent:#54f0b2; --blue:#5bcdf8; --orange:#ffbe72; }
     * { box-sizing:border-box; }
     html { background:#061411; }
-    body { margin:0; min-width:320px; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; background:#061411; overflow-x:hidden; }
-    body::before { content:""; position:fixed; z-index:-3; inset:0; background:linear-gradient(90deg,rgba(3,15,18,.82),rgba(3,15,17,.46) 52%,rgba(3,14,14,.66)),url("assets/smart-farm-bg-v2.jpg") center/cover no-repeat; }
-    body::after { content:""; position:fixed; z-index:-2; inset:0; opacity:.62; background-image:linear-gradient(rgba(117,255,201,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(117,255,201,.04) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(to bottom,black,transparent 86%); }
-    .shell { min-height:100vh; max-width:1540px; margin:auto; padding:28px 42px 42px; position:relative; }
+    body { margin:0; min-width:320px; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; background:transparent; overflow-x:hidden; }
+    body::before { content:""; position:fixed; z-index:-1; inset:0; background:linear-gradient(90deg,rgba(3,15,18,.35),rgba(3,15,17,.15) 50%,rgba(3,14,14,.25)),url("assets/smart-farm-bg-v2.jpg") center/cover no-repeat; pointer-events:none; }
+    body::after { content:""; position:fixed; z-index:0; inset:0; opacity:.25; pointer-events:none; background-image:linear-gradient(rgba(117,255,201,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(117,255,201,.04) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(to bottom,black,transparent 86%); }
+    .shell { min-height:100vh; max-width:1540px; margin:auto; padding:28px 42px 42px; position:relative; z-index:1; }
     .shell::before { content:""; position:absolute; inset:0 0 auto; height:2px; background:linear-gradient(90deg,transparent 3%,var(--accent) 22%,rgba(91,205,248,.12) 52%,transparent 92%); box-shadow:0 0 22px rgba(84,240,178,.9); }
     .topbar { display:flex; gap:22px; justify-content:space-between; align-items:center; padding-bottom:28px; border-bottom:1px solid var(--line); }
     .brand { display:flex; align-items:center; gap:14px; }
