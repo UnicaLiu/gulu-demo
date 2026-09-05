@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 
 _BASE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(_BASE, "bots.json")
+HOME = os.path.expanduser("~")
 
 
 def load_config():
@@ -57,6 +58,39 @@ def bot_index():
     return {b["id"]: b for b in cfg.get("bots", [])}
 
 
+def save_config(cfg):
+    """原子写入 bots.json（先写临时文件再 rename，避免写一半损坏）。"""
+    tmp = CONFIG_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, CONFIG_PATH)
+
+
+def list_profiles():
+    """列出本机 Hermes profile（供设置面板选择要对接的 bot）。"""
+    try:
+        out = subprocess.run(
+            ["hermes", "profile", "list"],
+            capture_output=True, text=True, timeout=15, cwd=HOME,
+        ).stdout or ""
+        names = []
+        for line in out.splitlines():
+            t = line.strip()
+            if not t or t.startswith("Profile") or t.startswith("─"):
+                continue
+            name = t.split()[0].lstrip("◆").strip()
+            if name and name != "Profile":
+                names.append(name)
+        return names or ["default"]
+    except Exception:
+        try:
+            base = os.path.join(HOME, ".hermes", "profiles")
+            names = (["default"] + sorted(os.listdir(base))) if os.path.isdir(base) else ["default"]
+            return [n for n in names if n]
+        except Exception:
+            return ["default"]
+
+
 LOCK = threading.Lock()
 
 
@@ -70,7 +104,7 @@ def bot_chat(profile: str, message: str) -> str:
     ]
     try:
         proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=300, cwd="/Users/Zhuanz",
+            cmd, capture_output=True, text=True, timeout=300, cwd=HOME,
         )
         out = (proc.stdout or "") + (proc.stderr or "")
         # 提取回复：取两个 ╰/╭ 框内文本或 '链路OK' 行之后的纯文本
@@ -123,9 +157,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/bots":
             cfg = load_config()
             self._json(200, cfg)
+        elif path == "/api/profiles":
+            self._json(200, {"profiles": list_profiles()})
         elif path.startswith("/assets/"):
             # 静态资源（Codex 生成的图片）
-            import os
             rel = path.lstrip("/")
             fpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), rel)
             if os.path.isfile(fpath):
@@ -142,7 +177,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(404, {"error": "asset not found"})
         elif path == "/" or path == "/index.html":
             try:
-                with open("/tmp/agri-dashboard/index.html", encoding="utf-8") as f:
+                with open(os.path.join(_BASE, "index.html"), encoding="utf-8") as f:
                     html = f.read().encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -174,6 +209,35 @@ class Handler(BaseHTTPRequestHandler):
                 return
             reply = bot_chat(bot, msg)
             self._json(200, {"bot": bot, "reply": reply})
+        elif path == "/api/bots":
+            try:
+                n = int(self.headers.get("Content-Length", 0))
+                payload = json.loads(self.rfile.read(n) or b"{}")
+            except Exception:
+                self._json(400, {"error": "bad json"})
+                return
+            bots = payload.get("bots")
+            if not isinstance(bots, list):
+                self._json(400, {"error": "bots must be a list"})
+                return
+            seen, clean = set(), []
+            for b in bots:
+                if not isinstance(b, dict):
+                    continue
+                bid = str(b.get("id") or "").strip()
+                if not bid or bid in seen:
+                    continue
+                seen.add(bid)
+                nb = dict(b)
+                nb["id"] = bid
+                clean.append(nb)
+            cfg = load_config()
+            for key in ("company", "company_en", "hero_title"):
+                if key in payload:
+                    cfg[key] = payload[key]
+            cfg["bots"] = clean
+            save_config(cfg)
+            self._json(200, {"ok": True, "count": len(clean)})
         else:
             self._json(404, {"error": "not found"})
 
