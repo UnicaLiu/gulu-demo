@@ -91,6 +91,24 @@ def list_profiles():
             return ["default"]
 
 
+def list_avatars():
+    """列出 assets/ 下可作 Bot 头像的图片（排除背景/参考图/子目录）。"""
+    assets_dir = os.path.join(_BASE, "assets")
+    try:
+        names = sorted(os.listdir(assets_dir))
+    except Exception:
+        return []
+    out = []
+    for n in names:
+        low = n.lower()
+        if not low.endswith((".png", ".jpg", ".jpeg", ".webp")):
+            continue
+        if "bg" in low or "ref" in low or "preview" in low:
+            continue
+        out.append("assets/" + n)
+    return out
+
+
 LOCK = threading.Lock()
 
 
@@ -159,6 +177,8 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, cfg)
         elif path == "/api/profiles":
             self._json(200, {"profiles": list_profiles()})
+        elif path == "/api/avatars":
+            self._json(200, {"avatars": list_avatars()})
         elif path.startswith("/assets/"):
             # 静态资源（Codex 生成的图片）
             rel = path.lstrip("/")
